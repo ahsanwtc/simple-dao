@@ -44,8 +44,9 @@ contract DAO {
 		require(shares[msg.sender] >= amount, "not enough shares");
 		require(availableFunds >= amount, "not enough liquidity");
 		shares[msg.sender] -= amount;
-		availableFunds -= amount;
-		payable(msg.sender).transfer(amount);
+		// availableFunds -= amount;
+    _transferEther(amount, payable(msg.sender));
+		// payable(msg.sender).transfer(amount);
 	}
 
 	function transferShare(uint amount, address payable to) external {

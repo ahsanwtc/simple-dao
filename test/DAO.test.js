@@ -8,7 +8,7 @@ const DAO = artifacts.require("DAO");
  */
 contract("DAO", accounts => {
   let dao = null;
-  const [admin, investor1, investor2, investor3, nonInvestor] = accounts;
+  const [admin, investor1, investor2, investor3, proposalAddress, nonInvestor] = accounts;
   const contributionTime = 5, voteTime = 2, quorum = 50;
 
   beforeEach(async () => {
@@ -44,5 +44,34 @@ contract("DAO", accounts => {
     );
   });
 
+  it('should create a proposal', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    const proposal = await dao.proposals(0);
+
+    assert(proposal.id.toNumber() === 0);
+    assert(proposal.name === 'proposal');
+    assert(proposal.amount.toNumber() === 400);
+    assert(proposal.recipient === proposalAddress);
+    assert(proposal.votes.toNumber() === 0);
+    assert(proposal.executed === false);
+    assert((await dao.availableFunds()).toNumber() === 100);
+  });
+
+  it('should NOT create a proposal if sender is not an investor', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await expectRevert(
+      dao.createProposal('proposal', 400, proposalAddress, { from: nonInvestor }),
+      'investor only'
+    );
+  });
+
+  it('should NOT create a proposal if less liquidity available', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await expectRevert(
+      dao.createProposal('proposal', 600, proposalAddress, { from: investor1 }),
+      'not enough liquidity'
+    );
+  });
 
 });

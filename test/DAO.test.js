@@ -9,7 +9,7 @@ const DAO = artifacts.require("DAO");
 contract("DAO", accounts => {
   let dao = null;
   const [admin, investor1, investor2, investor3, proposalAddress, nonInvestor] = accounts;
-  const contributionTime = 5, voteTime = 2, quorum = 50;
+  const contributionTime = 5, voteTime = 5, quorum = 50;
 
   beforeEach(async () => {
     dao = await DAO.new(contributionTime, voteTime, quorum);
@@ -72,6 +72,54 @@ contract("DAO", accounts => {
       dao.createProposal('proposal', 600, proposalAddress, { from: investor1 }),
       'not enough liquidity'
     );
+  });
+
+  it('should vote', async () => {
+    let proposal = null;
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.contribute({ from: investor2, value: 600 });
+
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await dao.vote(0, { from: investor1 });
+
+    assert(await dao.votes(investor1, 0) === true);
+    proposal = await dao.proposals(0);
+    assert(proposal.votes.toNumber() === 500);
+
+    await dao.vote(0, { from: investor2 });
+    assert(await dao.votes(investor2, 0) === true);
+    proposal = await dao.proposals(0);
+    assert(proposal.votes.toNumber() === 1100);
+  });
+
+  it.only('should NOT vote if sender is not an investor', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await expectRevert(
+      dao.vote(0, { from: nonInvestor }),
+      'investor only'
+    );    
+  });
+  
+  it.only('should NOT vote if sender already voted', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await dao.vote(0, { from: investor1 });
+    await expectRevert(
+      dao.vote(0, { from: investor1 }),
+      'investor already voted'
+    );    
+  });
+
+  it.only('should NOT vote if voting is not active', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await time.increase(50001);
+    await expectRevert(
+      dao.vote(0, { from: investor1 }),
+      'voting is not active'
+    );    
   });
 
 });

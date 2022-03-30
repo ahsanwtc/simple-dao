@@ -84,7 +84,8 @@ contract DAO {
 		Proposal storage proposal = proposals[proposalId];
 		require(block.timestamp > proposal.end, "voting is still active");
 		require(proposal.executed == false, "proposal is already executed");
-		require(proposal.votes / totalShares * 100 >= quorum, "proposal doesn't staisfy the quorum");
+		require((proposal.votes * 100) / totalShares  >= quorum, "proposal doesn't staisfy the quorum");
+    proposal.executed = true;
 		_transferEther(proposal.amount, proposal.recipient);
 	}
 

@@ -1,4 +1,5 @@
 const { expectRevert, time} = require('@openzeppelin/test-helpers');
+const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const DAO = artifacts.require("DAO");
 
 /*
@@ -92,7 +93,7 @@ contract("DAO", accounts => {
     assert(proposal.votes.toNumber() === 1100);
   });
 
-  it.only('should NOT vote if sender is not an investor', async () => {
+  it('should NOT vote if sender is not an investor', async () => {
     await dao.contribute({ from: investor1, value: 500 });
 
     await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
@@ -102,7 +103,7 @@ contract("DAO", accounts => {
     );    
   });
   
-  it.only('should NOT vote if sender already voted', async () => {
+  it('should NOT vote if sender already voted', async () => {
     await dao.contribute({ from: investor1, value: 500 });
     await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
     await dao.vote(0, { from: investor1 });
@@ -112,13 +113,73 @@ contract("DAO", accounts => {
     );    
   });
 
-  it.only('should NOT vote if voting is not active', async () => {
+  it('should NOT vote if voting is not active', async () => {
     await dao.contribute({ from: investor1, value: 500 });
     await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
     await time.increase(50001);
     await expectRevert(
       dao.vote(0, { from: investor1 }),
       'voting is not active'
+    );    
+  });
+
+  it('should execute proposal', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.contribute({ from: investor2, value: 600 });
+    await dao.contribute({ from: investor3, value: 400 });
+
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await dao.vote(0, { from: investor2 });
+    await dao.vote(0, { from: investor3 });
+
+    const balanceBefore = web3.utils.toBN(await web3.eth.getBalance(proposalAddress));
+    await time.increase(5001);
+    await dao.executeProposal(0, { from: admin });
+    const balanceAfter = web3.utils.toBN(await web3.eth.getBalance(proposalAddress));
+
+    await assert((await dao.availableFunds()).toNumber() === 700);
+    assert(balanceAfter.sub(balanceBefore).toNumber() === 400);
+  });
+
+  it('should NOT execute proposal if sender is not admin', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await dao.vote(0, { from: investor1 });
+    await time.increase(5001);
+    await expectRevert(
+      dao.executeProposal(0, { from: investor1 }),
+      'only admin'
+    );    
+  });
+
+  it('should NOT execute proposal if voting is active', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await dao.vote(0, { from: investor1 });
+    await expectRevert(
+      dao.executeProposal(0, { from: admin }),
+      'voting is still active'
+    );    
+  });
+
+  it('should NOT execute proposal if proposal is already executed', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.contribute({ from: investor2, value: 600 });
+    await dao.contribute({ from: investor3, value: 400 });
+
+    await dao.createProposal('proposal', 400, proposalAddress, { from: investor1 });
+    await dao.vote(0, { from: investor1 });
+    await dao.vote(0, { from: investor2 });
+    await dao.vote(0, { from: investor3 });
+
+    await time.increase(5001);
+    await dao.executeProposal(0, { from: admin });
+
+    await expectRevert(
+      dao.executeProposal(0, { from: admin }),
+      'proposal is already executed'
     );    
   });
 

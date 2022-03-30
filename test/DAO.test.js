@@ -183,7 +183,7 @@ contract("DAO", accounts => {
     );    
   });
 
-  it.only('should withdraw ether', async () => {
+  it('should withdraw ether', async () => {
     await dao.contribute({ from: investor1, value: 500 });
     await dao.contribute({ from: investor2, value: 600 });
 
@@ -193,13 +193,23 @@ contract("DAO", accounts => {
     assert(balanceAfter.sub(balanceBefore).toNumber() === 500);
   });
 
-  it.only('should NOT withdraw ether if not admin', async () => {
+  it('should NOT withdraw ether if not admin', async () => {
     await dao.contribute({ from: investor1, value: 500 });
     await dao.contribute({ from: investor2, value: 600 });
 
     await expectRevert(
       dao.withdrawEther(500, nonInvestor, { from: nonInvestor }),
       'only admin'
+    );
+    
+  });
+
+  it.only('should NOT withdraw ether if amount too high', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+
+    await expectRevert(
+      dao.withdrawEther(600, nonInvestor, { from: nonInvestor }),
+      'not enough liquidity'
     );
     
   });

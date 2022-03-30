@@ -213,7 +213,7 @@ contract("DAO", accounts => {
     
   });
 
-  it.only('should transfer shares', async () => {
+  it('should transfer shares', async () => {
     await dao.contribute({ from: investor1, value: 500 });
     await dao.contribute({ from: investor2, value: 600 });
     
@@ -223,6 +223,16 @@ contract("DAO", accounts => {
 
     assert(balanceAfter.sub(balanceBefore).toNumber() === 400);
     assert((await dao.shares(investor1)).toNumber() === 100);
+    assert((await dao.investors(nonInvestor)) === true);
+  });
+
+  it('should NOT transfer shares if transfer amount is more than shares', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    
+    await expectRevert(
+      dao.transferShare(600, nonInvestor, { from: investor1 }),
+      'not enough shares'
+    );
   });
 
 });

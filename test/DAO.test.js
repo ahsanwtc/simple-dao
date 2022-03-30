@@ -183,4 +183,25 @@ contract("DAO", accounts => {
     );    
   });
 
+  it.only('should withdraw ether', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.contribute({ from: investor2, value: 600 });
+
+    const balanceBefore = web3.utils.toBN(await web3.eth.getBalance(nonInvestor));
+    await dao.withdrawEther(500, nonInvestor, { from: admin });
+    const balanceAfter = web3.utils.toBN(await web3.eth.getBalance(nonInvestor));
+    assert(balanceAfter.sub(balanceBefore).toNumber() === 500);
+  });
+
+  it.only('should NOT withdraw ether if not admin', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.contribute({ from: investor2, value: 600 });
+
+    await expectRevert(
+      dao.withdrawEther(500, nonInvestor, { from: nonInvestor }),
+      'admin only'
+    );
+    
+  });
+
 });

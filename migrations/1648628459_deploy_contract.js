@@ -1,3 +1,5 @@
+const DAO = artifacts.require("DAO");
+
 module.exports = function(_deployer) {
-  // Use deployer to state migration tasks.
+  _deployer.deploy(DAO, 2, 2, 50);
 };

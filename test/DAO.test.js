@@ -199,7 +199,7 @@ contract("DAO", accounts => {
 
     await expectRevert(
       dao.withdrawEther(500, nonInvestor, { from: nonInvestor }),
-      'admin only'
+      'only admin'
     );
     
   });

@@ -208,7 +208,7 @@ contract("DAO", accounts => {
     await dao.contribute({ from: investor1, value: 500 });
 
     await expectRevert(
-      dao.withdrawEther(600, nonInvestor, { from: nonInvestor }),
+      dao.withdrawEther(600, nonInvestor, { from: admin }),
       'not enough liquidity'
     );
     

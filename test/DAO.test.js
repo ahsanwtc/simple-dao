@@ -1,5 +1,4 @@
 const { expectRevert, time} = require('@openzeppelin/test-helpers');
-const { web3 } = require('@openzeppelin/test-helpers/src/setup');
 const DAO = artifacts.require("DAO");
 
 /*
@@ -204,7 +203,7 @@ contract("DAO", accounts => {
     
   });
 
-  it.only('should NOT withdraw ether if amount too high', async () => {
+  it('should NOT withdraw ether if amount too high', async () => {
     await dao.contribute({ from: investor1, value: 500 });
 
     await expectRevert(
@@ -212,6 +211,18 @@ contract("DAO", accounts => {
       'not enough liquidity'
     );
     
+  });
+
+  it.only('should transfer shares', async () => {
+    await dao.contribute({ from: investor1, value: 500 });
+    await dao.contribute({ from: investor2, value: 600 });
+    
+    const balanceBefore = web3.utils.toBN(await web3.eth.getBalance(nonInvestor));
+    await dao.transferShare(400, nonInvestor, { from: investor1 });
+    const balanceAfter = web3.utils.toBN(await web3.eth.getBalance(nonInvestor));
+
+    assert(balanceAfter.sub(balanceBefore).toNumber() === 400);
+    assert((await dao.shares(investor1)).toNumber() === 100);
   });
 
 });

@@ -235,23 +235,26 @@ contract("DAO", accounts => {
     );
   });
 
-  it('should redeem shares', async () => {
-    await dao.contribute({ from: investor1, value: 500 });
+  it.only('should redeem shares', async () => {
+    console.log(`investor balance before contribution: ${await web3.eth.getBalance(investor1)}`);
+    const tx = await dao.contribute({ from: investor1, value: 500 });
     await dao.contribute({ from: investor2, value: 600 });
+    console.log(`investor balance after contribution: ${await web3.eth.getBalance(investor1)} | gas: ${tx.receipt.gasUsed}`);
     
     /**
      * there is some issue when comparing the balances of investor1
      * need to look into this issue.
      */
-    // const balanceBefore = await web3.eth.getBalance(investor1);
-    await dao.redeemShare(400, { from: investor1 });
-    // const balanceAfter = await web3.eth.getBalance(investor1);
+    const balanceBefore = await web3.eth.getBalance(investor1);
+    const transaction = await dao.redeemShare(400, { from: investor1 });
+    const balanceAfter = await web3.eth.getBalance(investor1);
+    console.log(`before: ${balanceBefore} | after: ${balanceAfter} | gas: ${transaction.receipt.gasUsed}`);
 
-    // const balanceBeforeBN = web3.utils.toBN(balanceBefore);
-    // const balanceAfterBN = web3.utils.toBN(balanceAfter);
+    const balanceBeforeBN = web3.utils.toBN(balanceBefore);
+    const balanceAfterBN = web3.utils.toBN(balanceAfter);
     
 
-    // console.log(balanceAfterBN.sub(balanceBeforeBN).toNumber());
+    console.log(`delta ${balanceAfterBN.sub(balanceBeforeBN).add(web3.utils.toBN(400)).toNumber()}`);
     // assert(balanceAfter.sub(balanceBefore).toNumber() === 400, 'balance not correct');
     assert((await dao.shares(investor1)).toNumber() === 100, 'shares not correct');
     assert((await dao.availableFunds()).toNumber() === 700, 'availableFunds not correct');
